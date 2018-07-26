@@ -1,0 +1,329 @@
+<!doctype html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Familiada offline</title>
+<style type='text/css'>
+@font-face {
+	font-family:"Familiada Regular";
+	src: url("familiada.woff") format("woff");
+	font-weight:normal;
+	font-style:normal;
+}
+
+body { margin: 0; padding: 0; border: 0; background-color: black; }
+
+body#control { background-color: #eee; }
+
+body#board,
+body#board pre {
+	font-family: "Familiada Regular", Consolas, Inconsolata, "Courier New", Courier, monospace;
+	color: yellow;
+	background: black;
+	margin: 0; padding: 0;
+	font-size: 45px;
+	line-height: 120%;
+}
+
+div#szanse-L, div#szanse-R { font-size: 2.6em; line-height: 1em;}
+
+div#szanse-L { width: 10%; float: left; margin-left: 0.1em; }
+pre#odpowiedzi { width: 78%; float: left; }
+div#szanse-R { width: 10%; float: left; text-align: right; }
+
+div#wynik-L, div#wynik-R { margin-top: 1.3em; }
+div#wynik-R { text-align: right; position: relative; width: 3em; margin-left: -2em;}
+div#wynik-L { margin-left: 0.1em; }
+
+span.odp-calosc { display: block; clear: left; }
+span.odp-calosc span { float: left; display: block; margin: 1px; }
+span.odp-numer { width: 1.4em; }
+span.odp-tresc { width: 13.0em; }
+span.odp-punkty { width: 2em; text-align: right; }
+span.odp-dummy {}
+
+span.odp-suma { padding-top: 1em; display: block; width: 5em; float: left; margin-left: 9.5em; clear: both; }
+span.odp-suma-ptk { padding-top: 1em; display: block; width: 2.5em; float: left; text-align: right; }
+div#punkty { font-size: 160%; text-align: center; height: 1.5em; padding-top: 0.3em; }
+
+dixv,sxpan { border: 1px solid red; }
+
+</style>
+<script type='text/javascript'>
+
+var Pytania = [
+	{	pyt : "Jaki jest popularny dodatek do gofrów?",
+		odp : [
+			{ o : "Cukier puder", p : 28 },
+			{ o : "Bita śmietana", p : 26 },
+			{ o : "Dżem", p : 16 },
+			{ o : "Owoce", p : 11 },
+			{ o : "Polewa", p : 8 },
+			{ o : "Posypka", p : 6 }
+		]
+	},
+	{	pyt : "Co kojarzy się ze Śląskiem?",
+		odp : [
+			{ o : "Węgiel", p : 39 },
+			{ o : "Gwara", p : 19 },
+			{ o : "Kopalnia", p : 14 },
+			{ o : "Kluski śląskie", p : 9 },
+			{ o : "Pracowitość", p : 7 },
+			{ o : "Smog", p : 6 }
+
+		]
+	},
+	{	pyt : "Wymień stworzenie na literę 'B'",
+		odp: [
+			{ o : "Bocian", p: 30 },
+			{ o : "Biedronka", p: 21 },
+			{ o : "Byk", p: 15 },
+			{ o : "Bóbr", p: 12 },
+			{ o : "Baran", p: 9 },
+			{ o : "Bąk", p: 6 }
+		]
+	},
+	{	pyt: "Po co się dziś spotkaliśmy?",
+		odp : [
+			{ o : "Świętować", p : 42 },
+			{ o : "Potańczyć", p : 20 },
+			{ o : "Pogadać", p : 15 },
+			{ o : "Napić się wódki/soku", p : 10 }
+
+		]
+	}
+];
+
+var Familiada = {
+    nazwyDruzyn: [
+        "Majewscy",
+        "Subotkowscy"
+    ],
+	plansza : false,
+	stan : {
+		ekran : "tytul",
+		pytanie : false,
+		odpowiedzi : [],
+		druzyna : false,
+		punkty : 0,
+		szanse : [3, 3],
+		wynik : [0, 0],
+		nasrodku : 1,
+		przejmuja : 0,
+		mnoznik : 1,
+		wyplacono : 0
+	},
+	init : function(){
+		this.pokazPlansze();
+		this.rysujKontroler();
+		setTimeout( this.rysujPlansze, 500 );
+	},
+	pokazPlansze : function(){
+		Familiada.plansza = window.open("familiada.html","Familiada","location=0,status=0,scrollbars=0,width=800,height=600");
+		Familiada.plansza.moveTo(100,100);
+	},
+	rysujPlansze : function(){
+		var kod = ({
+			tytul : function(){
+				return "<pre>\n\n     F A M I L I A D A\n\n</pre>"
+			},
+			runda : function(){
+				return '<div id="punkty">' + (Familiada.stan.mnoznik * Familiada.stan.punkty) + '</div>'
+					+ '<div id="szanse-L">'
+					+ '<div id="szansa-L-1">' + ( Familiada.stan.szanse[0] <= 0 ? "X" : "&nbsp;" ) + '</div>'
+					+ '<div id="szansa-L-2">' + ( Familiada.stan.szanse[0] <= 1 ? "X" : "&nbsp;" ) + '</div>'
+					+ '<div id="szansa-L-3">' + ( Familiada.stan.szanse[0] <= 2 ? "X" : "&nbsp;" ) + '</div>'
+					+ '<div id="wynik-L">' + ( Familiada.stan.wynik[0] ) + '</div>'
+					+ '</div>' + '<pre id="odpowiedzi">'
+					+ Familiada.stan.odpowiedzi.map( function(o,n){
+						return '<span class="odp-calosc">' + '<span class="odp-numer">'+(n+1)+"</span>"
+						+ '<span class="odp-tresc">'
+						+ (o.s == 0 ? ("_________________") : o.o )
+						+ '</span><span class="odp-punkty">'
+						+ (o.s == 0 ? "--" : o.p ) + '</span>' + '<span class="odp-dummy">&nbsp;</span>' 
+						+ '</span>'
+					} ).join('')
+					+ '<span class="odp-suma">SUMA:</span><span class="odp-suma-ptk">' + (Familiada.stan.punkty) + '</span>'
+					+ '</pre>'
+					+ '<div id="szanse-R">'
+					+ '<div id="szansa-R-1">' + ( Familiada.stan.szanse[1] <= 0 ? "X" : "&nbsp;" ) + '</div>'
+					+ '<div id="szansa-R-2">' + ( Familiada.stan.szanse[1] <= 1 ? "X" : "&nbsp;" ) + '</div>'
+					+ '<div id="szansa-R-3">' + ( Familiada.stan.szanse[1] <= 2 ? "X" : "&nbsp;" ) + '</div>'
+					+ '<div id="wynik-R">' + ( Familiada.stan.wynik[1] ) + '</div>'
+			}
+		})[ Familiada.stan.ekran ]();
+		var b = Familiada.plansza.document.getElementsByTagName('body')[0]
+		b.id = 'board';
+		b.innerHTML = kod;
+	},
+	rysujKontroler : function(){
+	({
+		tytul : function(){
+			document.getElementById('questions-list').innerHTML =
+			Pytania.map( function(p,n){ return { pyt: p.pyt, n: n }; } )
+			.map( function(p){ return '<li>[' + p.n + '] ' + p.pyt
+				+ '<button onclick="Familiada.wybierzPytanie(' + p.n + ')">wybierz</button>'
+				+ '</li>'
+			}).join("")
+		},
+		runda : function(){
+			document.getElementById('ans-list').innerHTML = 
+			Pytania[Familiada.stan.pytanie].odp.map( function( o,n ){
+				return '<li>' + o.o + ' (' + o.p + ')' +
+				( ( Familiada.stan.druzyna !== false )
+					? ( '<button onclick="Familiada.wybierzOdpowiedz(' + n + ')">' +
+					( Familiada.stan.wyplacono ? 'pokaż' : 'wybierz' ) + '</button>' )
+					: '' )
+				+ '</li>'
+			} ).join('')
+		
+			document.getElementById('status').innerHTML = 
+				'Odpowiada: ' + Familiada.nazwyDruzyn[Familiada.stan.druzyna] + '<br />' +
+				'Mnożnik: ' + Familiada.stan.mnoznik + '<br />' + 
+				'Na srodku: ' + (Familiada.stan.nasrodku ?"TAK":"NIE")+ '<br />' +
+				'Przejmuja: ' + (Familiada.stan.przejmuja ? "TAK":"NIE" ) ;
+	
+		}
+	})[ Familiada.stan.ekran ]();
+	
+	},
+	wybierzPytanie : function(n){
+		if ( window.confirm( Pytania[ n ].pyt ) ){
+			Familiada.stan.pytanie = n;
+			Familiada.stan.punkty = 0;
+			Familiada.stan.szanse = [3,3];
+			Familiada.stan.odpowiedzi = Pytania[n].odp.map( function(o){ return { p:o.p, o:o.o, s:0 } } );
+			Familiada.stan.ekran = 'runda';
+			Familiada.stan.druzyna = false;
+			Familiada.stan.mnoznik = 1;
+			Familiada.stan.nasrodku = 1;
+			Familiada.stan.przejmuja = 0;
+			Familiada.stan.wyplacono = 0;
+		}
+		Familiada.rysujPlansze();
+		Familiada.rysujKontroler();
+	},
+	wybierzOdpowiedz : function(n){
+		if ( Familiada.stan.wyplacono ){
+			if ( window.confirm( "Odslonic " + Familiada.stan.odpowiedzi[n].o + "?" ) ){
+				Familiada.stan.odpowiedzi[n].s = 1;
+				document.getElementById('audio-dobra-odp').play();
+			}
+		}
+		else {
+			if ( Familiada.stan.odpowiedzi[n].s == 0 && Familiada.stan.druzyna !== false ){
+				if ( window.confirm( Familiada.stan.odpowiedzi[n].o ) ){	
+					if ( Familiada.stan.nasrodku ){
+						if ( n == 0 ){
+							Familiada.stan.nasrodku = 0;
+						}
+						else if ( Familiada.stan.punkty == 0 && Familiada.stan.szanse[ Familiada.stan.druzyna^1 ] ){
+							Familiada.stan.druzyna ^= 1;
+						}
+						else {
+							Familiada.stan.nasrodku = 0;
+						}
+						Familiada.stan.szanse = [3,3];
+					}
+					Familiada.stan.punkty += Familiada.stan.odpowiedzi[n].p;
+					Familiada.stan.odpowiedzi[n].s = 1;
+					document.getElementById("audio-dobra-odp").play();
+				}
+			} else {
+				alert( "Bylo albo nie wiadomo kto gra" )
+			}
+		}
+		Familiada.rysujPlansze();
+		Familiada.rysujKontroler();
+	},
+	zlaOdpowiedz : function(){
+		if ( Familiada.stan.druzyna !== false ){
+			if ( window.confirm( "Zla odpowiedz?" )){
+				if ( Familiada.stan.nasrodku ){
+					if ( Familiada.stan.punkty == 0 && Familiada.stan.szanse[ Familiada.stan.druzyna ^ 1 ] ){
+						Familiada.stan.szanse[ Familiada.stan.druzyna ] = 0;
+						Familiada.stan.druzyna ^= 1;
+					}
+					else if ( Familiada.stan.szanse[ Familiada.stan.druzyna ^ 1 ] == 0 ){
+						Familiada.stan.druzyna ^= 1;
+						Familiada.stan.szanse = [0,0];
+					}
+					else {
+						Familiada.stan.druzyna ^= 1;
+						Familiada.stan.szanse = [3,3];
+						Familiada.stan.nasrodku = 0;
+					}
+					
+				} 
+				else if ( Familiada.stan.przejmuja ){
+					Familiada.stan.szanse[ Familiada.stan.druzyna ] = 0;
+				}
+				else {
+					Familiada.stan.szanse[ Familiada.stan.druzyna ]--;
+					if ( Familiada.stan.szanse[ Familiada.stan.druzyna ] == 0 ){
+						Familiada.stan.druzyna ^= 1;
+						Familiada.stan.przejmuja = 1;
+					}
+				}
+				document.getElementById("audio-utrata").play();
+			}
+		} else {
+			alert( "Nie wiadomo kto gra" );
+		}
+		Familiada.rysujPlansze();
+		Familiada.rysujKontroler();
+	},
+	ustawDruzyne : function(n){
+		Familiada.stan.druzyna = n;
+		Familiada.rysujKontroler();
+	},
+	ustawMnoznik : function(n){
+		Familiada.stan.mnoznik = n;
+		Familiada.rysujPlansze();
+		Familiada.rysujKontroler();
+	},
+	wyplac : function( n ){
+		if ( Familiada.stan.wyplacono == 0 ){
+			Familiada.stan.wynik[ n ] += Familiada.stan.punkty * Familiada.stan.mnoznik;
+			Familiada.stan.wyplacono = 1;
+		} else {
+			alert( "Juz wyplacono" );
+		}
+		Familiada.rysujPlansze();
+		Familiada.rysujKontroler();
+	}
+	
+}
+
+</script>
+</head>
+<body id='control' onload='document.getElementsByTagName("body")[0].class="ready"'>
+<button onclick='Familiada.init();' >start</button>
+<button onclick='Familiada.rysujPlansze(); Familiada.rysujKontroler();'>refresh</button>
+
+<button onclick='Familiada.ustawDruzyne(0)'>Gra drużyna Majewskich</button>
+<button onclick='Familiada.ustawDruzyne(1)'>Gra drużyna Subotkowskich</button>
+
+<button onclick='Familiada.ustawMnoznik(1)'>Ustaw mnoznik 1</button>
+<button onclick='Familiada.ustawMnoznik(2)'>Ustaw mnoznik 2</button>
+<button onclick='Familiada.ustawMnoznik(3)'>Ustaw mnoznik 3</button>
+
+<button onclick='Familiada.wyplac(0)'>Wyplac druzynie Majewskich</button>
+<button onclick='Familiada.wyplac(1)'>Wyplac druzynie Subotkowskich</button>
+
+
+<div id='questions'>
+<ul id='questions-list'></ul>
+</div>
+<div id='ans'>
+<ul id='ans-list'></ul>
+<p><button onclick='Familiada.zlaOdpowiedz()'>ZLA ODPOWIEDŹ</button></p>
+</div>
+
+<div id='status'></div>
+
+<audio id='audio-dobra-odp' src='dobra_odpowiedz.ogg'></audio>
+<audio id='audio-utrata' src='utrata.ogg'></audio>
+
+</body>
+</html>
